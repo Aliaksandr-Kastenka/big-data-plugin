@@ -22,12 +22,19 @@
 
 package org.pentaho.big.data.kettle.plugins.kafka;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.config.ConfigDef;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.pentaho.big.data.api.cluster.NamedClusterService;
@@ -91,6 +98,37 @@ public class KafkaDialogHelper {
     } finally {
       if ( kafkaConsumer != null ) {
         kafkaConsumer.close();
+      }
+    }
+  }
+
+  public static List<String> getConsumerConfigOptionNames() {
+    return getConfigOptionNames( ConsumerConfig.class );
+  }
+
+  public static List<String> getProducerConfigOptionNames() {
+    return getConfigOptionNames( ProducerConfig.class );
+  }
+
+  private static List<String> getConfigOptionNames( Class cl ) {
+    return getStaticField( cl, "CONFIG" ).map( config ->
+        ( (ConfigDef) config ).configKeys().keySet().stream().sorted().collect( Collectors.toList() )
+    ).orElse( new ArrayList<>() );
+  }
+
+  private static Optional<Object> getStaticField( Class cl, String fieldName ) {
+    Field field = null;
+    boolean isAccessible = false;
+    try {
+      field = cl.getDeclaredField( fieldName );
+      isAccessible = field.isAccessible();
+      field.setAccessible( true );
+      return Optional.ofNullable( field.get( null ) );
+    } catch ( NoSuchFieldException | IllegalAccessException e ) {
+      return Optional.empty();
+    } finally {
+      if ( field != null ) {
+        field.setAccessible( isAccessible );
       }
     }
   }

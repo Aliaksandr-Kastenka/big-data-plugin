@@ -22,6 +22,7 @@
 
 package org.pentaho.big.data.kettle.plugins.kafka;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -73,7 +74,7 @@ public class KafkaFactory {
   public void putKerberosConfig( HashMap<String, Object> kafkaConfig, JaasConfigService jaasConfigService ) {
     if ( jaasConfigService.isKerberos() ) {
       kafkaConfig.put( SaslConfigs.SASL_JAAS_CONFIG, jaasConfigService.getJaasConfig() );
-      kafkaConfig.put( "security.protocol", "SASL_PLAINTEXT" );
+      kafkaConfig.put( CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT" );
     }
   }
 
