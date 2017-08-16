@@ -24,16 +24,17 @@ package org.pentaho.big.data.kettle.plugins.kafka;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.stream.IntStream;
 import org.pentaho.big.data.api.cluster.NamedClusterService;
 import org.pentaho.big.data.api.cluster.service.locator.NamedClusterServiceLocator;
 import org.pentaho.bigdata.api.jaas.JaasConfigService;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.ObjectLocationSpecificationMethod;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -109,7 +110,7 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
   @Injection( name = "DURATION" )
   private long batchDuration;
 
-  private Properties advancedConfig;
+  private Map<String, String> advancedConfig = new LinkedHashMap<>();
 
   @InjectionDeep( prefix = "KEY" ) private KafkaConsumerField keyField;
   @InjectionDeep( prefix = "MESSAGE" ) private KafkaConsumerField messageField;
@@ -197,10 +198,11 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
       setField( field );
     } );
 
-    advancedConfig = new Properties();
+    advancedConfig = new LinkedHashMap<>();
 
     Optional.ofNullable( XMLHandler.getSubNode( stepnode, ADVANCED_CONFIG ) ).map( node -> node.getChildNodes() )
         .ifPresent( nodes -> IntStream.range( 0, nodes.getLength() ).mapToObj( nodes::item )
+            .filter( node -> node.getNodeType() == Node.ELEMENT_NODE )
             .forEach( node -> advancedConfig.put( node.getNodeName(), node.getTextContent() ) ) );
   }
 
@@ -236,7 +238,7 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
       }
     }
 
-    advancedConfig = new Properties();
+    advancedConfig = new LinkedHashMap<>();
 
     for ( int i = 0; i < rep.getStepAttributeInteger( id_step, ADVANCED_CONFIG + "_COUNT" ); i++ ) {
       advancedConfig.put( rep.getStepAttributeString( id_step, i, ADVANCED_CONFIG + "_NAME" ),
@@ -268,9 +270,9 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
     rep.saveStepAttribute( transId, stepId, ADVANCED_CONFIG + "_COUNT", getAdvancedConfig().size() );
 
     i = 0;
-    for ( Map.Entry entry : getAdvancedConfig().entrySet() ) {
-      rep.saveStepAttribute( transId, stepId, i, ADVANCED_CONFIG + "_NAME", (String) entry.getKey() );
-      rep.saveStepAttribute( transId, stepId, i++, ADVANCED_CONFIG + "_VALUE", (String) entry.getValue() );
+    for ( String propName : getAdvancedConfig().keySet() ) {
+      rep.saveStepAttribute( transId, stepId, i, ADVANCED_CONFIG + "_NAME", propName );
+      rep.saveStepAttribute( transId, stepId, i++, ADVANCED_CONFIG + "_VALUE", getAdvancedConfig().get( propName ) );
     }
   }
 
@@ -461,10 +463,10 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
           KAFKA_NAME_ATTRIBUTE, field.getKafkaName().toString(),
           TYPE_ATTRIBUTE, field.getOutputType().toString() ) ) );
 
-    XMLHandler.openTag( retval, ADVANCED_CONFIG );
+    retval.append( "    " ).append( XMLHandler.openTag( ADVANCED_CONFIG ) ).append( Const.CR );
     getAdvancedConfig().forEach( ( key, value ) -> retval.append( "        " )
         .append( XMLHandler.addTagValue( (String) key, (String) value ) ) );
-    XMLHandler.closeTag( retval, ADVANCED_CONFIG );
+    retval.append( "    " ).append( XMLHandler.closeTag( ADVANCED_CONFIG ) ).append( Const.CR );
 
     return retval.toString();
   }
@@ -530,11 +532,11 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
     this.metastoreLocator = metastoreLocator;
   }
 
-  public void setAdvancedConfig( Properties properties ) {
-    advancedConfig = properties;
+  public void setAdvancedConfig( Map<String, String> config ) {
+    advancedConfig = config;
   }
 
-  public Properties getAdvancedConfig() {
+  public Map<String, String> getAdvancedConfig() {
     return advancedConfig;
   }
 }

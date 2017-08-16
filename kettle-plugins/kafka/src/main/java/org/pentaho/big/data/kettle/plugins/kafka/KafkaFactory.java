@@ -68,7 +68,7 @@ public class KafkaFactory {
     kafkaConfig.put( ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializerType.getKafkaDeserializerClass() );
     meta.getJaasConfigService().ifPresent( jaasConfigService -> putKerberosConfig( kafkaConfig, jaasConfigService ) );
     meta.getAdvancedConfig().entrySet()
-        .forEach( ( entry -> kafkaConfig.put( (String) entry.getKey(), variableNonNull.apply(
+        .forEach( ( entry -> kafkaConfig.put( entry.getKey(), variableNonNull.apply(
             (String) entry.getValue() ) ) ) );
     return consumerFunction.apply( kafkaConfig );
   }
@@ -95,7 +95,6 @@ public class KafkaFactory {
     kafkaConfig.put( ProducerConfig.CLIENT_ID_CONFIG, variableNonNull.apply( meta.getClientId() ) );
     kafkaConfig.put( ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, msgSerializerType.getKafkaSerializerClass() );
     kafkaConfig.put( ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerType.getKafkaSerializerClass() );
-    kafkaConfig.put( ProducerConfig.MAX_BLOCK_MS_CONFIG, 123 );
     meta.getJaasConfigService().ifPresent( jaasConfigService -> putKerberosConfig( kafkaConfig, jaasConfigService ) );
     return producerFunction.apply( kafkaConfig );
   }
