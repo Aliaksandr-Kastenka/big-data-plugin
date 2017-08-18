@@ -125,7 +125,7 @@ public class KafkaConsumerInput extends BaseStep implements StepInterface {
 
   public void startBatchDurationTimer() {
     kafkaConsumerInputData.timer = new Timer();
-    if ( kafkaConsumerInputMeta.getBatchDuration() <= 0 ) {
+    if ( Long.parseLong( environmentSubstitute( kafkaConsumerInputMeta.getBatchDuration() ) ) <= 0 ) {
       return;
     }
     kafkaConsumerInputData.timer.schedule( new TimerTask() {
@@ -136,7 +136,7 @@ public class KafkaConsumerInput extends BaseStep implements StepInterface {
           logError( e.getMessage() );
         }
       }
-    }, kafkaConsumerInputMeta.getBatchDuration() );
+    }, Long.parseLong( environmentSubstitute( kafkaConsumerInputMeta.getBatchDuration() ) ) );
   }
 
   public boolean processRow( StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
@@ -228,10 +228,10 @@ public class KafkaConsumerInput extends BaseStep implements StepInterface {
   }
 
   private synchronized void sendBufferToSubtrans( boolean forcedByTimer ) throws KettleException {
-    if ( forcedByTimer || kafkaConsumerInputData.buffer.size() == kafkaConsumerInputMeta.getBatchSize() ) {
+    if ( forcedByTimer || kafkaConsumerInputData.buffer.size() == Long.parseLong( environmentSubstitute( kafkaConsumerInputMeta.getBatchSize() ) ) ) {
       kafkaConsumerInputData.subtransExecutor.execute( kafkaConsumerInputData.buffer );
       kafkaConsumerInputData.buffer.clear();
-      if ( kafkaConsumerInputMeta.getBatchDuration() >= 0 ) {
+      if ( Long.parseLong( environmentSubstitute( kafkaConsumerInputMeta.getBatchDuration() ) ) >= 0 ) {
         kafkaConsumerInputData.timer.cancel();
         startBatchDurationTimer();
       }

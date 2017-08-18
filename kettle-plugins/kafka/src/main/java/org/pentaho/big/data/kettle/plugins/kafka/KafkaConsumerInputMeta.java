@@ -105,10 +105,10 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
   private String consumerGroup;
 
   @Injection( name = "NUM_MESSAGES" )
-  private long batchSize;
+  private String batchSize;
 
   @Injection( name = "DURATION" )
-  private long batchDuration;
+  private String batchDuration;
 
   private Map<String, String> advancedConfig = new LinkedHashMap<>();
 
@@ -182,8 +182,8 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
 
     setConsumerGroup( XMLHandler.getTagValue( stepnode, CONSUMER_GROUP ) );
     setTransformationPath( XMLHandler.getTagValue( stepnode, TRANSFORMATION_PATH ) );
-    setBatchSize( Long.parseLong( XMLHandler.getTagValue( stepnode, BATCH_SIZE ) ) );
-    setBatchDuration( Long.parseLong( XMLHandler.getTagValue( stepnode, BATCH_DURATION ) ) );
+    setBatchSize( XMLHandler.getTagValue( stepnode, BATCH_SIZE ) );
+    setBatchDuration( XMLHandler.getTagValue( stepnode, BATCH_DURATION ) );
     List<Node> ofNode = XMLHandler.getNodes( stepnode, OUTPUT_FIELD_TAG_NAME );
 
     ofNode.forEach( node -> {
@@ -211,8 +211,8 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
   }
 
   public void setDefault() {
-    batchSize = 1000;
-    batchDuration = 0;
+    batchSize = "1000";
+    batchDuration = "0";
   }
 
   public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases )
@@ -226,8 +226,8 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
 
     setConsumerGroup( rep.getStepAttributeString( id_step, CONSUMER_GROUP ) );
     setTransformationPath( rep.getStepAttributeString( id_step, TRANSFORMATION_PATH ) );
-    setBatchSize( rep.getStepAttributeInteger( id_step, BATCH_SIZE ) );
-    setBatchDuration( rep.getStepAttributeInteger( id_step, BATCH_DURATION ) );
+    setBatchSize( rep.getStepAttributeString( id_step, BATCH_SIZE ) );
+    setBatchDuration( rep.getStepAttributeString( id_step, BATCH_DURATION ) );
 
     for ( KafkaConsumerField.Name name : KafkaConsumerField.Name.values() ) {
       String prefix = OUTPUT_FIELD_TAG_NAME + "_" + name;
@@ -401,11 +401,11 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
     return transformationPath;
   }
 
-  public long getBatchSize() {
+  public String getBatchSize() {
     return batchSize;
   }
 
-  public long getBatchDuration() {
+  public String getBatchDuration() {
     return batchDuration;
   }
 
@@ -437,11 +437,11 @@ public class KafkaConsumerInputMeta extends StepWithMappingMeta implements StepM
     this.transformationPath = transformationPath;
   }
 
-  public void setBatchSize( long batchSize ) {
+  public void setBatchSize( String batchSize ) {
     this.batchSize = batchSize;
   }
 
-  public void setBatchDuration( long batchDuration ) {
+  public void setBatchDuration( String batchDuration ) {
     this.batchDuration = batchDuration;
   }
 
