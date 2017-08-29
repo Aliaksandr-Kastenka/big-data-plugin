@@ -24,6 +24,8 @@ package org.pentaho.big.data.kettle.plugins.kafka;
 
 import java.util.List;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CTabFolder;
+import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -34,11 +36,12 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.pentaho.di.core.Props;
 import org.pentaho.di.core.plugins.PluginInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
 import org.pentaho.di.core.plugins.StepPluginType;
@@ -62,8 +65,9 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
 
   private final KafkaFactory kafkaFactory = KafkaFactory.defaultFactory();
 
-  private static final int SHELL_MIN_WIDTH = 410;
-  private static final int SHELL_MIN_HEIGHT = 510;
+  private static final int SHELL_MIN_WIDTH = 527;
+  private static final int SHELL_MIN_HEIGHT = 535;
+  private static final int INPUT_WIDTH = 350;
 
   private KafkaProducerOutputMeta meta;
   private ModifyListener lsMod;
@@ -78,6 +82,13 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
   private Label wlMessageField;
   private TextVar wMessageField;
 
+  private CTabFolder wTabFolder;
+  private CTabItem wSetupTab;
+  private CTabItem wOptionsTab;
+
+  private Composite wSetupComp;
+  private Composite wOptionsComp;
+
   public KafkaProducerOutputDialog( Shell parent, Object in,
                                     TransMeta transMeta, String stepname ) {
     super( parent, (BaseStepMeta) in, transMeta, stepname );
@@ -87,20 +98,32 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
   @Override public String open() {
     Shell parent = getParent();
     Display display = parent.getDisplay();
-
-    shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.MIN | SWT.MAX );
-    props.setLook( shell );
-    setShellImage( shell, meta );
+    changed = meta.hasChanged();
 
     lsMod = e -> meta.setChanged();
-    changed = meta.hasChanged();
+    lsCancel = e -> cancel();
+    lsOK = e -> ok();
+    lsDef = new SelectionAdapter() {
+      public void widgetDefaultSelected( SelectionEvent e ) {
+        ok();
+      }
+    };
+
+    shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.MIN | SWT.MAX | SWT.RESIZE );
+    props.setLook( shell );
+    setShellImage( shell, meta );
+    shell.setMinimumSize( SHELL_MIN_WIDTH, SHELL_MIN_HEIGHT );
+    shell.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Shell.Title" ) );
 
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = 15;
     formLayout.marginHeight = 15;
-
     shell.setLayout( formLayout );
-    shell.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Shell.Title" ) );
+    shell.addShellListener( new ShellAdapter() {
+      public void shellClosed( ShellEvent e ) {
+        cancel();
+      }
+    } );
 
     Label wicon = new Label( shell, SWT.RIGHT );
     wicon.setImage( getImage() );
@@ -127,133 +150,29 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     fdStepname.left = new FormAttachment( 0, 0 );
     fdStepname.top = new FormAttachment( wlStepname, 5 );
     wStepname.setLayoutData( fdStepname );
+    wStepname.addSelectionListener( lsDef );
 
-    Label spacer = new Label( shell, SWT.HORIZONTAL | SWT.SEPARATOR );
+    Label topSeparator = new Label( shell, SWT.HORIZONTAL | SWT.SEPARATOR );
     FormData fdSpacer = new FormData();
-    fdSpacer.height = 1;
+    fdSpacer.height = 2;
     fdSpacer.left = new FormAttachment( 0, 0 );
     fdSpacer.top = new FormAttachment( wStepname, 15 );
     fdSpacer.right = new FormAttachment( 100, 0 );
-    spacer.setLayoutData( fdSpacer );
+    topSeparator.setLayoutData( fdSpacer );
 
-    Group group = new Group( shell, SWT.SHADOW_ETCHED_IN );
-    group.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.KafkaConnectionInformation" ) );
-    group.setLayout( new FormLayout() );
-
-    FormData groupLayoutData = new FormData();
-    groupLayoutData.left = new FormAttachment( 0, 0 );
-    groupLayoutData.top = new FormAttachment( spacer, 15 );
-    groupLayoutData.right = new FormAttachment( 100, 0 );
-    groupLayoutData.width = 350;
-    group.setLayoutData( groupLayoutData );
-    props.setLook( group );
-
-    wlClusterName = new Label( group, SWT.LEFT );
-    props.setLook( wlClusterName );
-    wlClusterName.setText(  BaseMessages.getString( PKG, "KafkaProducerOutputDialog.HadoopCluster" ) );
-    FormData fdlServer = new FormData();
-    fdlServer.left = new FormAttachment( 0, 15 );
-    fdlServer.top = new FormAttachment( 0, 15 );
-    fdlServer.right = new FormAttachment( 50, 0 );
-    wlClusterName.setLayoutData( fdlServer );
-
-    wClusterName = new ComboVar( transMeta, group, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wClusterName );
-    wClusterName.addModifyListener( lsMod );
-    FormData fdServer = new FormData();
-    fdServer.left = new FormAttachment( 0, 15 );
-    fdServer.top = new FormAttachment( wlClusterName, 5 );
-    fdServer.right = new FormAttachment( 100, -15 );
-    wClusterName.setLayoutData( fdServer );
-
-    wlClientId = new Label( group, SWT.LEFT );
-    props.setLook( wlClientId );
-    wlClientId.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.ClientId" ) );
-    FormData fdlClientId = new FormData();
-    fdlClientId.left = new FormAttachment( 0, 15 );
-    fdlClientId.top = new FormAttachment( wClusterName, 10 );
-    fdlClientId.right = new FormAttachment( 50, 0 );
-    wlClientId.setLayoutData( fdlClientId );
-
-    wClientId = new TextVar( transMeta, group, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wClientId );
-    wClientId.addModifyListener( lsMod );
-    FormData fdClientId = new FormData();
-    fdClientId.left = new FormAttachment( 0, 15 );
-    fdClientId.top = new FormAttachment( wlClientId, 5 );
-    fdClientId.right = new FormAttachment( 100, -15 );
-    wClientId.setLayoutData( fdClientId );
-
-    wlTopic = new Label( group, SWT.LEFT );
-    props.setLook( wlTopic );
-    wlTopic.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Topic" ) );
-    FormData fdlTopic = new FormData();
-    fdlTopic.left = new FormAttachment( 0, 15 );
-    fdlTopic.top = new FormAttachment( wClientId, 10 );
-    fdlTopic.right = new FormAttachment( 50, 0 );
-    wlTopic.setLayoutData( fdlTopic );
-
-    wTopic = new ComboVar( transMeta, group, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wTopic );
-    wTopic.addModifyListener( lsMod );
-    FormData fdTopic = new FormData();
-    fdTopic.left = new FormAttachment( 0, 15 );
-    fdTopic.top = new FormAttachment( wlTopic, 5 );
-    fdTopic.right = new FormAttachment( 100, -15 );
-    wTopic.setLayoutData( fdTopic );
-
-    wlKeyField = new Label( group, SWT.LEFT );
-    props.setLook( wlKeyField );
-    wlKeyField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.KeyField" ) );
-    FormData fdlKeyField = new FormData();
-    fdlKeyField.left = new FormAttachment( 0, 15 );
-    fdlKeyField.top = new FormAttachment( wTopic, 10 );
-    fdlKeyField.right = new FormAttachment( 50, 0 );
-    wlKeyField.setLayoutData( fdlKeyField );
-
-    wKeyField = new TextVar( transMeta, group, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wKeyField );
-    wKeyField.addModifyListener( lsMod );
-    FormData fdKeyField = new FormData();
-    fdKeyField.left = new FormAttachment( 0, 15 );
-    fdKeyField.top = new FormAttachment( wlKeyField, 5 );
-    fdKeyField.right = new FormAttachment( 100, -15 );
-    wKeyField.setLayoutData( fdKeyField );
-
-    wlMessageField = new Label( group, SWT.LEFT );
-    props.setLook( wlMessageField );
-    wlMessageField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.MessageField" ) );
-    FormData fdlMessageField = new FormData();
-    fdlMessageField.left = new FormAttachment( 0, 15 );
-    fdlMessageField.top = new FormAttachment( wKeyField, 10 );
-    fdlMessageField.right = new FormAttachment( 50, 0 );
-    wlMessageField.setLayoutData( fdlMessageField );
-
-    wMessageField = new TextVar( transMeta, group, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wMessageField );
-    wMessageField.addModifyListener( lsMod );
-    FormData fdMessageField = new FormData();
-    fdMessageField.left = new FormAttachment( 0, 15 );
-    fdMessageField.top = new FormAttachment( wlMessageField, 5 );
-    fdMessageField.right = new FormAttachment( 100, -15 );
-    wMessageField.setLayoutData( fdMessageField );
-
-    Label bottomSpacer = new Label( group, SWT.HORIZONTAL | SWT.SEPARATOR );
-    props.setLook( bottomSpacer );
-    FormData fdBottomPadding = new FormData();
-    fdBottomPadding.height = 0;
-    fdBottomPadding.left = new FormAttachment( 0, 0 );
-    fdBottomPadding.top = new FormAttachment( wMessageField, 15 );
-    fdBottomPadding.right = new FormAttachment( 100, 0 );
-    bottomSpacer.setLayoutData( fdBottomPadding );
+    // Start of tabbed display
+    wTabFolder = new CTabFolder( shell, SWT.BORDER );
+    props.setLook( wTabFolder, Props.WIDGET_STYLE_TAB );
+    wTabFolder.setSimple( false );
+    wTabFolder.setUnselectedCloseVisible( true );
 
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
     FormData fdCancel = new FormData();
-
     fdCancel.right = new FormAttachment( 100, 0 );
     fdCancel.bottom = new FormAttachment( 100, 0 );
     wCancel.setLayoutData( fdCancel );
+    wCancel.addListener( SWT.Selection, lsCancel );
 
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -261,46 +180,34 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     fdOk.right = new FormAttachment( wCancel, -5 );
     fdOk.bottom = new FormAttachment( 100, 0 );
     wOK.setLayoutData( fdOk );
+    wOK.addListener( SWT.Selection, lsOK );
 
     Label bottomSeparator = new Label( shell, SWT.HORIZONTAL | SWT.SEPARATOR );
     props.setLook( bottomSeparator );
-    FormData fdBottomSpacer = new FormData();
-    fdBottomSpacer.height = 1;
-    fdBottomSpacer.left = new FormAttachment( 0, 0 );
-    fdBottomSpacer.top = new FormAttachment( group, 15 );
-    fdBottomSpacer.bottom = new FormAttachment( wCancel, -15 );
-    fdBottomSpacer.right = new FormAttachment( 100, 0 );
-    bottomSeparator.setLayoutData( fdBottomSpacer );
+    FormData fdBottomSeparator = new FormData();
+    fdBottomSeparator.height = 2;
+    fdBottomSeparator.left = new FormAttachment( 0, 0 );
+    fdBottomSeparator.bottom = new FormAttachment( wCancel, -15 );
+    fdBottomSeparator.right = new FormAttachment( 100, 0 );
+    bottomSeparator.setLayoutData( fdBottomSeparator );
 
-    lsCancel = e -> cancel();
-    lsOK = e -> ok();
+    FormData fdTabFolder = new FormData();
+    fdTabFolder.left = new FormAttachment( 0, 0 );
+    fdTabFolder.top = new FormAttachment( topSeparator, 15 );
+    fdTabFolder.bottom = new FormAttachment( bottomSeparator, -15 );
+    fdTabFolder.right = new FormAttachment( 100, 0 );
+    wTabFolder.setLayoutData( fdTabFolder );
 
-    wOK.addListener( SWT.Selection, lsOK );
-    wCancel.addListener( SWT.Selection, lsCancel );
-    wTopic.getCComboWidget().addListener(
-      SWT.FocusIn, new KafkaDialogHelper( wClusterName, wTopic, kafkaFactory, meta.getNamedClusterService(),
-        meta.getNamedClusterServiceLocator(), meta.getMetastoreLocator()
-      )::clusterNameChanged );
-
-    lsDef = new SelectionAdapter() {
-      public void widgetDefaultSelected( SelectionEvent e ) {
-        ok();
-      }
-    };
-    wClusterName.addSelectionListener( lsDef );
-    wStepname.addSelectionListener( lsDef );
-
-    shell.addShellListener( new ShellAdapter() {
-      public void shellClosed( ShellEvent e ) {
-        cancel();
-      }
-    } );
+    buildSetupTab();
+    buildOptionsTab();
 
     getData();
 
     setSize();
 
     meta.setChanged( changed );
+
+    wTabFolder.setSelection( 0 );
 
     shell.open();
     while ( !shell.isDisposed() ) {
@@ -309,6 +216,134 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
       }
     }
     return stepname;
+  }
+
+  private void buildSetupTab() {
+    wSetupTab = new CTabItem( wTabFolder, SWT.NONE );
+    wSetupTab.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.SetupTab" ) );
+
+    wSetupComp = new Composite( wTabFolder, SWT.NONE );
+    props.setLook( wSetupComp );
+    FormLayout setupLayout = new FormLayout();
+    setupLayout.marginHeight = 15;
+    setupLayout.marginWidth = 15;
+    wSetupComp.setLayout( setupLayout );
+
+    wlClusterName = new Label( wSetupComp, SWT.LEFT );
+    props.setLook( wlClusterName );
+    wlClusterName.setText(  BaseMessages.getString( PKG, "KafkaProducerOutputDialog.HadoopCluster" ) );
+    FormData fdlServer = new FormData();
+    fdlServer.left = new FormAttachment( 0, 15 );
+    fdlServer.top = new FormAttachment( 0, 15 );
+    fdlServer.right = new FormAttachment( 50, 0 );
+    wlClusterName.setLayoutData( fdlServer );
+
+    wClusterName = new ComboVar( transMeta, wSetupComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wClusterName );
+    wClusterName.addModifyListener( lsMod );
+    FormData fdServer = new FormData();
+    fdServer.left = new FormAttachment( 0, 15 );
+    fdServer.top = new FormAttachment( wlClusterName, 5 );
+    fdServer.right = new FormAttachment( 100, -15 );
+    wClusterName.setLayoutData( fdServer );
+    wClusterName.addSelectionListener( lsDef );
+
+    wlClientId = new Label( wSetupComp, SWT.LEFT );
+    props.setLook( wlClientId );
+    wlClientId.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.ClientId" ) );
+    FormData fdlClientId = new FormData();
+    fdlClientId.left = new FormAttachment( 0, 15 );
+    fdlClientId.top = new FormAttachment( wClusterName, 10 );
+    fdlClientId.right = new FormAttachment( 50, 0 );
+    wlClientId.setLayoutData( fdlClientId );
+
+    wClientId = new TextVar( transMeta, wSetupComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wClientId );
+    wClientId.addModifyListener( lsMod );
+    FormData fdClientId = new FormData();
+    fdClientId.left = new FormAttachment( 0, 15 );
+    fdClientId.top = new FormAttachment( wlClientId, 5 );
+    fdClientId.right = new FormAttachment( 100, -15 );
+    wClientId.setLayoutData( fdClientId );
+
+    wlTopic = new Label( wSetupComp, SWT.LEFT );
+    props.setLook( wlTopic );
+    wlTopic.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Topic" ) );
+    FormData fdlTopic = new FormData();
+    fdlTopic.left = new FormAttachment( 0, 15 );
+    fdlTopic.top = new FormAttachment( wClientId, 10 );
+    fdlTopic.right = new FormAttachment( 50, 0 );
+    wlTopic.setLayoutData( fdlTopic );
+
+    wTopic = new ComboVar( transMeta, wSetupComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wTopic );
+    wTopic.addModifyListener( lsMod );
+    FormData fdTopic = new FormData();
+    fdTopic.left = new FormAttachment( 0, 15 );
+    fdTopic.top = new FormAttachment( wlTopic, 5 );
+    fdTopic.right = new FormAttachment( 100, -15 );
+    wTopic.setLayoutData( fdTopic );
+    wTopic.getCComboWidget().addListener(
+        SWT.FocusIn, new KafkaDialogHelper( wClusterName, wTopic, kafkaFactory, meta.getNamedClusterService(),
+            meta.getNamedClusterServiceLocator(), meta.getMetastoreLocator()
+        )::clusterNameChanged );
+
+    wlKeyField = new Label( wSetupComp, SWT.LEFT );
+    props.setLook( wlKeyField );
+    wlKeyField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.KeyField" ) );
+    FormData fdlKeyField = new FormData();
+    fdlKeyField.left = new FormAttachment( 0, 15 );
+    fdlKeyField.top = new FormAttachment( wTopic, 10 );
+    fdlKeyField.right = new FormAttachment( 50, 0 );
+    wlKeyField.setLayoutData( fdlKeyField );
+
+    wKeyField = new TextVar( transMeta, wSetupComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wKeyField );
+    wKeyField.addModifyListener( lsMod );
+    FormData fdKeyField = new FormData();
+    fdKeyField.left = new FormAttachment( 0, 15 );
+    fdKeyField.top = new FormAttachment( wlKeyField, 5 );
+    fdKeyField.right = new FormAttachment( 100, -15 );
+    wKeyField.setLayoutData( fdKeyField );
+
+    wlMessageField = new Label( wSetupComp, SWT.LEFT );
+    props.setLook( wlMessageField );
+    wlMessageField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.MessageField" ) );
+    FormData fdlMessageField = new FormData();
+    fdlMessageField.left = new FormAttachment( 0, 15 );
+    fdlMessageField.top = new FormAttachment( wKeyField, 10 );
+    fdlMessageField.right = new FormAttachment( 50, 0 );
+    wlMessageField.setLayoutData( fdlMessageField );
+
+    wMessageField = new TextVar( transMeta, wSetupComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wMessageField );
+    wMessageField.addModifyListener( lsMod );
+    FormData fdMessageField = new FormData();
+    fdMessageField.left = new FormAttachment( 0, 15 );
+    fdMessageField.top = new FormAttachment( wlMessageField, 5 );
+    fdMessageField.right = new FormAttachment( 100, -15 );
+    wMessageField.setLayoutData( fdMessageField );
+
+    FormData fdSetupComp = new FormData();
+    fdSetupComp.left = new FormAttachment( 0, 0 );
+    fdSetupComp.top = new FormAttachment( 0, 0 );
+    fdSetupComp.right = new FormAttachment( 100, 0 );
+    fdSetupComp.bottom = new FormAttachment( 100, 0 );
+    wSetupComp.setLayoutData( fdSetupComp );
+    wSetupComp.layout();
+    wSetupTab.setControl( wSetupComp );
+  }
+
+  private void buildOptionsTab() {
+    wOptionsTab = new CTabItem( wTabFolder, SWT.NONE );
+    wOptionsTab.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.OptionsTab" ) );
+
+    wOptionsComp = new Composite( wTabFolder, SWT.NONE );
+    props.setLook( wOptionsComp );
+    FormLayout fieldsLayout = new FormLayout();
+    fieldsLayout.marginHeight = 15;
+    fieldsLayout.marginWidth = 15;
+    wOptionsComp.setLayout( fieldsLayout );
   }
 
   private void getData() {
