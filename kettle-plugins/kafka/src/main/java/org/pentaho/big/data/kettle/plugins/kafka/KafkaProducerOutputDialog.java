@@ -22,7 +22,11 @@
 
 package org.pentaho.big.data.kettle.plugins.kafka;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -37,9 +41,12 @@ import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Props;
 import org.pentaho.di.core.plugins.PluginInterface;
@@ -51,7 +58,9 @@ import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.ui.core.ConstUI;
 import org.pentaho.di.ui.core.gui.GUIResource;
+import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.ComboVar;
+import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
@@ -81,6 +90,7 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
   private TextVar wKeyField;
   private Label wlMessageField;
   private TextVar wMessageField;
+  private TableView optionsTable;
 
   private CTabFolder wTabFolder;
   private CTabItem wSetupTab;
@@ -233,8 +243,8 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wlClusterName );
     wlClusterName.setText(  BaseMessages.getString( PKG, "KafkaProducerOutputDialog.HadoopCluster" ) );
     FormData fdlServer = new FormData();
-    fdlServer.left = new FormAttachment( 0, 15 );
-    fdlServer.top = new FormAttachment( 0, 15 );
+    fdlServer.left = new FormAttachment( 0, 0 );
+    fdlServer.top = new FormAttachment( 0, 0 );
     fdlServer.right = new FormAttachment( 50, 0 );
     wlClusterName.setLayoutData( fdlServer );
 
@@ -242,9 +252,9 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wClusterName );
     wClusterName.addModifyListener( lsMod );
     FormData fdServer = new FormData();
-    fdServer.left = new FormAttachment( 0, 15 );
+    fdServer.left = new FormAttachment( 0, 0 );
     fdServer.top = new FormAttachment( wlClusterName, 5 );
-    fdServer.right = new FormAttachment( 100, -15 );
+    fdServer.right = new FormAttachment( 0, 350 );
     wClusterName.setLayoutData( fdServer );
     wClusterName.addSelectionListener( lsDef );
 
@@ -252,7 +262,7 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wlClientId );
     wlClientId.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.ClientId" ) );
     FormData fdlClientId = new FormData();
-    fdlClientId.left = new FormAttachment( 0, 15 );
+    fdlClientId.left = new FormAttachment( 0, 0 );
     fdlClientId.top = new FormAttachment( wClusterName, 10 );
     fdlClientId.right = new FormAttachment( 50, 0 );
     wlClientId.setLayoutData( fdlClientId );
@@ -261,16 +271,16 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wClientId );
     wClientId.addModifyListener( lsMod );
     FormData fdClientId = new FormData();
-    fdClientId.left = new FormAttachment( 0, 15 );
+    fdClientId.left = new FormAttachment( 0, 0 );
     fdClientId.top = new FormAttachment( wlClientId, 5 );
-    fdClientId.right = new FormAttachment( 100, -15 );
+    fdClientId.right = new FormAttachment( 0, 350 );
     wClientId.setLayoutData( fdClientId );
 
     wlTopic = new Label( wSetupComp, SWT.LEFT );
     props.setLook( wlTopic );
     wlTopic.setText(   BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Topic" ) );
     FormData fdlTopic = new FormData();
-    fdlTopic.left = new FormAttachment( 0, 15 );
+    fdlTopic.left = new FormAttachment( 0, 0 );
     fdlTopic.top = new FormAttachment( wClientId, 10 );
     fdlTopic.right = new FormAttachment( 50, 0 );
     wlTopic.setLayoutData( fdlTopic );
@@ -279,9 +289,9 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wTopic );
     wTopic.addModifyListener( lsMod );
     FormData fdTopic = new FormData();
-    fdTopic.left = new FormAttachment( 0, 15 );
+    fdTopic.left = new FormAttachment( 0, 0 );
     fdTopic.top = new FormAttachment( wlTopic, 5 );
-    fdTopic.right = new FormAttachment( 100, -15 );
+    fdTopic.right = new FormAttachment( 0, 350 );
     wTopic.setLayoutData( fdTopic );
     wTopic.getCComboWidget().addListener(
         SWT.FocusIn, new KafkaDialogHelper( wClusterName, wTopic, kafkaFactory, meta.getNamedClusterService(),
@@ -292,7 +302,7 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wlKeyField );
     wlKeyField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.KeyField" ) );
     FormData fdlKeyField = new FormData();
-    fdlKeyField.left = new FormAttachment( 0, 15 );
+    fdlKeyField.left = new FormAttachment( 0, 0 );
     fdlKeyField.top = new FormAttachment( wTopic, 10 );
     fdlKeyField.right = new FormAttachment( 50, 0 );
     wlKeyField.setLayoutData( fdlKeyField );
@@ -301,16 +311,16 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wKeyField );
     wKeyField.addModifyListener( lsMod );
     FormData fdKeyField = new FormData();
-    fdKeyField.left = new FormAttachment( 0, 15 );
+    fdKeyField.left = new FormAttachment( 0, 0 );
     fdKeyField.top = new FormAttachment( wlKeyField, 5 );
-    fdKeyField.right = new FormAttachment( 100, -15 );
+    fdKeyField.right = new FormAttachment( 0, 350 );
     wKeyField.setLayoutData( fdKeyField );
 
     wlMessageField = new Label( wSetupComp, SWT.LEFT );
     props.setLook( wlMessageField );
     wlMessageField.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.MessageField" ) );
     FormData fdlMessageField = new FormData();
-    fdlMessageField.left = new FormAttachment( 0, 15 );
+    fdlMessageField.left = new FormAttachment( 0, 0 );
     fdlMessageField.top = new FormAttachment( wKeyField, 10 );
     fdlMessageField.right = new FormAttachment( 50, 0 );
     wlMessageField.setLayoutData( fdlMessageField );
@@ -319,9 +329,9 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     props.setLook( wMessageField );
     wMessageField.addModifyListener( lsMod );
     FormData fdMessageField = new FormData();
-    fdMessageField.left = new FormAttachment( 0, 15 );
+    fdMessageField.left = new FormAttachment( 0, 0 );
     fdMessageField.top = new FormAttachment( wlMessageField, 5 );
-    fdMessageField.right = new FormAttachment( 100, -15 );
+    fdMessageField.right = new FormAttachment( 0, 350 );
     wMessageField.setLayoutData( fdMessageField );
 
     FormData fdSetupComp = new FormData();
@@ -336,7 +346,7 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
 
   private void buildOptionsTab() {
     wOptionsTab = new CTabItem( wTabFolder, SWT.NONE );
-    wOptionsTab.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.OptionsTab" ) );
+    wOptionsTab.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Options.Tab" ) );
 
     wOptionsComp = new Composite( wTabFolder, SWT.NONE );
     props.setLook( wOptionsComp );
@@ -344,6 +354,119 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     fieldsLayout.marginHeight = 15;
     fieldsLayout.marginWidth = 15;
     wOptionsComp.setLayout( fieldsLayout );
+
+    Label optionsLabel = new Label( wOptionsComp, SWT.LEFT );
+    props.setLook( optionsLabel );
+    optionsLabel.setText( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Options.Label" ) );
+    FormData fdlOptions = new FormData();
+    fdlOptions.left = new FormAttachment( 0, 0 );
+    fdlOptions.top = new FormAttachment( 0, 0 );
+    fdlOptions.right = new FormAttachment( 50, 0 );
+    optionsLabel.setLayoutData( fdlOptions );
+
+    FormData optionsFormData = new FormData();
+    optionsFormData.left = new FormAttachment( 0, 0 );
+    optionsFormData.top = new FormAttachment( wOptionsComp, 0 );
+    optionsFormData.right = new FormAttachment( 100, 0 );
+    optionsFormData.bottom = new FormAttachment( 100, 0 );
+    wOptionsComp.setLayoutData( optionsFormData );
+
+    buildOptionsTable( wOptionsComp, optionsLabel );
+
+    wOptionsComp.layout();
+    wOptionsTab.setControl( wOptionsComp );
+  }
+
+  private void buildOptionsTable( Composite parentWidget, Control relativePosition ) {
+    ColumnInfo[] columns = getOptionsColumns();
+
+    if ( meta.getAdvancedConfig().size() == 0 ) {
+      // inital call
+      List<String> list = KafkaDialogHelper.getProducerAdvancedConfigOptionNames();
+      Map<String, String> advancedConfig = new LinkedHashMap<>();
+      for ( String item : list ) {
+        if ( "compression.type".equals( item ) ) {
+          advancedConfig.put( item, "none" );
+        } else {
+          advancedConfig.put( item, "" );
+        }
+      }
+      meta.setAdvancedConfig( advancedConfig );
+    }
+    int fieldCount = meta.getAdvancedConfig().size();
+
+    optionsTable = new TableView(
+      transMeta,
+      parentWidget,
+      SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI,
+      columns,
+      fieldCount,
+      false,
+      lsMod,
+      props,
+      false
+    );
+
+    optionsTable.setSortable( false );
+    optionsTable.getTable().addListener( SWT.Resize, event -> {
+      Table table = (Table) event.widget;
+      table.getColumn( 1 ).setWidth( 220 );
+      table.getColumn( 2 ).setWidth( 220 );
+    } );
+
+    populateOptionsData();
+
+    FormData fdData = new FormData();
+    fdData.left = new FormAttachment( 0, 0 );
+    fdData.top = new FormAttachment( relativePosition, 5 );
+    fdData.right = new FormAttachment( 100, 0 );
+    fdData.bottom = new FormAttachment( 100, 0 );
+
+    // resize the columns to fit the data in them
+    Arrays.stream( optionsTable.getTable().getColumns() ).forEach( column -> {
+      if ( column.getWidth() > 0 ) {
+        // don't pack anything with a 0 width, it will resize it to make it visible (like the index column)
+        column.setWidth( 120 );
+      }
+    } );
+
+    optionsTable.setLayoutData( fdData );
+  }
+
+  private ColumnInfo[] getOptionsColumns() {
+
+    ColumnInfo optionName = new ColumnInfo( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Options.Column.Name" ),
+      ColumnInfo.COLUMN_TYPE_TEXT, false, false );
+
+    ColumnInfo value = new ColumnInfo( BaseMessages.getString( PKG, "KafkaProducerOutputDialog.Options.Column.Value" ),
+      ColumnInfo.COLUMN_TYPE_TEXT, false, false );
+    value.setUsingVariables( true );
+
+    return new ColumnInfo[]{ optionName, value };
+  }
+
+  private void populateOptionsData() {
+    int rowIndex = 0;
+    for ( Map.Entry<String, String> entry : meta.getAdvancedConfig().entrySet() ) {
+      TableItem key = optionsTable.getTable().getItem( rowIndex++ );
+      key.setText( 1, entry.getKey() );
+      key.setText( 2, entry.getValue() );
+    }
+  }
+
+  private void setOptionsFromTable() {
+    int itemCount = optionsTable.getItemCount();
+    Map<String, String> advancedConfig = new LinkedHashMap<>();
+
+    for ( int rowIndex = 0; rowIndex < itemCount; rowIndex++ ) {
+      TableItem row = optionsTable.getTable().getItem( rowIndex );
+      String config = row.getText( 1 );
+      String value = row.getText( 2 );
+      if ( !"".equals( config ) && !advancedConfig.containsKey( config ) ) {
+        advancedConfig.put( config, value );
+      }
+    }
+    meta.setAdvancedConfig( advancedConfig );
   }
 
   private void getData() {
@@ -395,6 +518,7 @@ public class KafkaProducerOutputDialog extends BaseStepDialog implements StepDia
     meta.setTopic( wTopic.getText() );
     meta.setKeyField( wKeyField.getText() );
     meta.setMessageField( wMessageField.getText() );
+    setOptionsFromTable();
     dispose();
   }
 }
